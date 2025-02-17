@@ -2,7 +2,7 @@ import re
 
 # Definir patrones léxicos
 patrones_token = {
-    "KEYWORD": r"\b(if|else|while|for|return|int|float|void)\b",
+    "KEYWORD": r"\b(if|else|while|for|return|int|float|void|print)\b",
     "IDENTIFIER": r"\b[a-zA-Z_][a-zA-Z0-9_]*\b",
     "NUMBER": r"\b\d+(\.\d+)?\b",
     "OPERATOR": r"[+\-*/=]",
@@ -61,38 +61,62 @@ class Parser:
 
     def cuerpo(self):
         while self.obtener_simbolo() and self.obtener_simbolo()[1] != "}":
-            if self.obtener_simbolo()[0] == "KEYWORD" and self.obtener_simbolo()[1] == "return":
-                self.aceptar_token("KEYWORD")
-                self.evaluar_expresion()
-                self.aceptar_token("DELIMITER")
-            elif self.obtener_simbolo()[0] == "KEYWORD" and self.obtener_simbolo()[1] == "if":
-                self.aceptar_token("KEYWORD")
-                self.aceptar_token("DELIMITER")  # (
-                self.evaluar_condicion()
-                self.aceptar_token("DELIMITER")  # )
-                self.aceptar_token("DELIMITER")  # {
-                self.cuerpo()
-                self.aceptar_token("DELIMITER")  # }
-            elif self.obtener_simbolo()[0] == "KEYWORD" and self.obtener_simbolo()[1] == "for":
-                self.aceptar_token("KEYWORD")
-                self.aceptar_token("DELIMITER")  # (
-                self.asignacion()
-                self.evaluar_condicion()
-                self.aceptar_token("DELIMITER")
-                self.evaluar_expresion()
-                self.aceptar_token("DELIMITER")  # )
-                self.aceptar_token("DELIMITER")  # {
-                self.cuerpo()
-                self.aceptar_token("DELIMITER")  # }
+            if self.obtener_simbolo()[0] == "KEYWORD":
+                if self.obtener_simbolo()[1] == "return":
+                    self.aceptar_token("KEYWORD")
+                    self.evaluar_expresion()
+                    self.aceptar_token("DELIMITER")
+                elif self.obtener_simbolo()[1] == "if":
+                    self.condicional()
+                elif self.obtener_simbolo()[1] == "for":
+                    self.bucle_for()
+                elif self.obtener_simbolo()[1] == "print":
+                    self.declaracion_print()
+                else:
+                    self.asignacion()
             else:
                 self.asignacion()
 
     def asignacion(self):
-        self.aceptar_token("KEYWORD")
-        self.aceptar_token("IDENTIFIER")
-        self.aceptar_token("OPERATOR")
+        if self.obtener_simbolo()[0] == "KEYWORD":
+            self.aceptar_token("KEYWORD")  # Tipo de variable
+        self.aceptar_token("IDENTIFIER")  # Nombre de la variable
+        self.aceptar_token("OPERATOR")  # Operador =
         self.evaluar_expresion()
         self.aceptar_token("DELIMITER")
+
+    def condicional(self):
+        self.aceptar_token("KEYWORD")  # if
+        self.aceptar_token("DELIMITER")  # (
+        self.evaluar_condicion()
+        self.aceptar_token("DELIMITER")  # )
+        self.aceptar_token("DELIMITER")  # {
+        self.cuerpo()
+        self.aceptar_token("DELIMITER")  # }
+        if self.obtener_simbolo() and self.obtener_simbolo()[1] == "else":
+            self.aceptar_token("KEYWORD")
+            self.aceptar_token("DELIMITER")  # {
+            self.cuerpo()
+            self.aceptar_token("DELIMITER")  # }
+
+    def bucle_for(self):
+        self.aceptar_token("KEYWORD")  # for
+        self.aceptar_token("DELIMITER")  # (
+        self.asignacion()
+        self.evaluar_condicion()
+        self.aceptar_token("DELIMITER")
+        self.evaluar_expresion()
+        self.aceptar_token("DELIMITER")  # )
+        self.aceptar_token("DELIMITER")  # {
+        self.cuerpo()
+        self.aceptar_token("DELIMITER")  # }
+
+    def declaracion_print(self):
+        self.aceptar_token("KEYWORD")  # print
+        self.aceptar_token("DELIMITER")  # (
+        self.evaluar_expresion()
+        self.aceptar_token("DELIMITER")  # )
+        self.aceptar_token("DELIMITER")  # ;
 
     def evaluar_expresion(self):
         self.evaluar_segmento()
@@ -119,19 +143,9 @@ class Parser:
 
     def evaluar_condicion(self):
         self.evaluar_expresion()
-        while self.verificar_simbolo_relacional():
-            self.aceptar_token("RELATIONAL")
-            self.evaluar_expresion()
-        while self.verificar_simbolo_logico():
-            self.aceptar_token("LOGICAL")
+        while self.obtener_simbolo() and self.obtener_simbolo()[0] in ["RELATIONAL", "LOGICAL"]:
+            self.aceptar_token(self.obtener_simbolo()[0])
             self.evaluar_expresion()
 
     def verificar_simbolo(self, operadores):
         return self.obtener_simbolo() and self.obtener_simbolo()[1] in operadores
-
-    def verificar_simbolo_relacional(self):
-        return self.obtener_simbolo() and self.obtener_simbolo()[0] == "RELATIONAL"
-
-    def verificar_simbolo_logico(self):
-        return self.obtener_simbolo() and self.obtener_simbolo()[0] == "LOGICAL"
-     
