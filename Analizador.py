@@ -1,4 +1,5 @@
 import re
+import json
 
 # Definir patrones léxicos
 patrones_token = {
@@ -9,6 +10,7 @@ patrones_token = {
     "RELATIONAL": r"(==|!=|>=|<=|>|<)",
     "LOGICAL": r"(&&|\|\||!)",
     "DELIMITER": r"[(),;{}]",
+    "STRING": r'"[^"]*"',
     "WHITESPACE": r"\s+",
 }
 
@@ -21,6 +23,53 @@ def identificar_tokens(texto):
             if valor is not None and tipo != "WHITESPACE":
                 tokens_encontrados.append((tipo, valor))
     return tokens_encontrados
+
+class NodoAst:
+    def to_dict(self):
+        result = {"tipo": self.__class__.__name__}
+        for key, value in self.__dict__.items():
+            if isinstance(value, list):
+                result[key] = [v.to_dict() if isinstance(v, NodoAst) else v for v in value]
+            elif isinstance(value, NodoAst):
+                result[key] = value.to_dict()
+            else:
+                result[key] = value
+        return result
+
+class NodoFuncion(NodoAst):
+    def __init__(self, tipo, nombre, parametros, cuerpo):
+        self.tipo = tipo
+        self.nombre = nombre
+        self.parametros = parametros
+        self.cuerpo = cuerpo
+
+class NodoParametro(NodoAst):
+    def __init__(self, tipo, nombre):
+        self.tipo = tipo
+        self.nombre = nombre
+
+class NodoAsignacion(NodoAst):
+    def __init__(self, nombre, expresion):
+        self.nombre = nombre
+        self.expresion = expresion
+
+class NodoOperacion(NodoAst):
+    def __init__(self, izquierda, operador, derecha):
+        self.izquierda = izquierda
+        self.operador = operador
+        self.derecha = derecha
+
+class NodoRetorno(NodoAst):
+    def __init__(self, expresion):
+        self.expresion = expresion
+
+class NodoIdentificador(NodoAst):
+    def __init__(self, nombre):
+        self.nombre = nombre
+
+class NodoNumero(NodoAst):
+    def __init__(self, valor):
+        self.valor = valor
 
 class Parser:
     def __init__(self, tokens):
@@ -38,114 +87,72 @@ class Parser:
         raise SyntaxError(f'Error Sintáctico, se esperaba {tipo_esperado}, pero se encontró {simbolo_actual}')
 
     def parsear(self):
-        self.funcion()
+        return self.funcion()
 
     def funcion(self):
-        self.aceptar_token("KEYWORD")
-        self.aceptar_token("IDENTIFIER")
+        tipo = self.aceptar_token("KEYWORD")[1]
+        nombre = self.aceptar_token("IDENTIFIER")[1]
         self.aceptar_token("DELIMITER")
-        self.parametros()
+        parametros = self.parametros()
         self.aceptar_token("DELIMITER")
         self.aceptar_token("DELIMITER")
-        self.cuerpo()
+        cuerpo = self.cuerpo()
         self.aceptar_token("DELIMITER")
+        return NodoFuncion(tipo, nombre, parametros, cuerpo)
 
     def parametros(self):
+        parametros = []
         if self.obtener_simbolo() and self.obtener_simbolo()[0] == "KEYWORD":
-            self.aceptar_token("KEYWORD")
-            self.aceptar_token("IDENTIFIER")
+            tipo = self.aceptar_token("KEYWORD")[1]
+            nombre = self.aceptar_token("IDENTIFIER")[1]
+            parametros.append(NodoParametro(tipo, nombre))
             while self.obtener_simbolo() and self.obtener_simbolo()[1] == ",":
                 self.aceptar_token("DELIMITER")
-                self.aceptar_token("KEYWORD")
-                self.aceptar_token("IDENTIFIER")
+                tipo = self.aceptar_token("KEYWORD")[1]
+                nombre = self.aceptar_token("IDENTIFIER")[1]
+                parametros.append(NodoParametro(tipo, nombre))
+        return parametros
 
     def cuerpo(self):
+        cuerpo = []
         while self.obtener_simbolo() and self.obtener_simbolo()[1] != "}":
-            if self.obtener_simbolo()[0] == "KEYWORD":
-                if self.obtener_simbolo()[1] == "return":
+            simbolo_actual = self.obtener_simbolo()
+            if simbolo_actual[0] == "KEYWORD":
+                if simbolo_actual[1] == "return":
                     self.aceptar_token("KEYWORD")
-                    self.evaluar_expresion()
+                    expresion = self.evaluar_expresion()
                     self.aceptar_token("DELIMITER")
-                elif self.obtener_simbolo()[1] == "if":
-                    self.condicional()
-                elif self.obtener_simbolo()[1] == "for":
-                    self.bucle_for()
-                elif self.obtener_simbolo()[1] == "print":
-                    self.declaracion_print()
+                    cuerpo.append(NodoRetorno(expresion))
                 else:
-                    self.asignacion()
+                    cuerpo.append(self.asignacion())
             else:
-                self.asignacion()
+                cuerpo.append(self.asignacion())
+        return cuerpo
 
     def asignacion(self):
-        if self.obtener_simbolo()[0] == "KEYWORD":
-            self.aceptar_token("KEYWORD")  # Tipo de variable
-        self.aceptar_token("IDENTIFIER")  # Nombre de la variable
-        self.aceptar_token("OPERATOR")  # Operador =
-        self.evaluar_expresion()
+        nombre = self.aceptar_token("IDENTIFIER")[1]
+        self.aceptar_token("OPERATOR")
+        expresion = self.evaluar_expresion()
         self.aceptar_token("DELIMITER")
-
-    def condicional(self):
-        self.aceptar_token("KEYWORD")  # if
-        self.aceptar_token("DELIMITER")  # (
-        self.evaluar_condicion()
-        self.aceptar_token("DELIMITER")  # )
-        self.aceptar_token("DELIMITER")  # {
-        self.cuerpo()
-        self.aceptar_token("DELIMITER")  # }
-        if self.obtener_simbolo() and self.obtener_simbolo()[1] == "else":
-            self.aceptar_token("KEYWORD")
-            self.aceptar_token("DELIMITER")  # {
-            self.cuerpo()
-            self.aceptar_token("DELIMITER")  # }
-
-    def bucle_for(self):
-        self.aceptar_token("KEYWORD")  # for
-        self.aceptar_token("DELIMITER")  # (
-        self.asignacion()
-        self.evaluar_condicion()
-        self.aceptar_token("DELIMITER")
-        self.evaluar_expresion()
-        self.aceptar_token("DELIMITER")  # )
-        self.aceptar_token("DELIMITER")  # {
-        self.cuerpo()
-        self.aceptar_token("DELIMITER")  # }
-
-    def declaracion_print(self):
-        self.aceptar_token("KEYWORD")  # print
-        self.aceptar_token("DELIMITER")  # (
-        self.evaluar_expresion()
-        self.aceptar_token("DELIMITER")  # )
-        self.aceptar_token("DELIMITER")  # ;
+        return NodoAsignacion(nombre, expresion)
 
     def evaluar_expresion(self):
-        self.evaluar_segmento()
-        while self.verificar_simbolo("+-"):
-            self.aceptar_token("OPERATOR")
-            self.evaluar_segmento()
-
-    def evaluar_segmento(self):
-        self.evaluar_componente()
-        while self.verificar_simbolo("*/"):
-            self.aceptar_token("OPERATOR")
-            self.evaluar_componente()
+        izquierda = self.evaluar_componente()
+        while self.obtener_simbolo() and self.obtener_simbolo()[0] == "OPERATOR":
+            operador = self.aceptar_token("OPERATOR")[1]
+            derecha = self.evaluar_componente()
+            izquierda = NodoOperacion(izquierda, operador, derecha)
+        return izquierda
 
     def evaluar_componente(self):
         simbolo_actual = self.obtener_simbolo()
-        if simbolo_actual[0] in ["NUMBER", "IDENTIFIER"]:
-            self.aceptar_token(simbolo_actual[0])
-        elif simbolo_actual[1] == "(":
-            self.aceptar_token("DELIMITER")
-            self.evaluar_expresion()
-            self.aceptar_token("DELIMITER")
-        else:
-            raise SyntaxError(f"Error al analizar el componente: {simbolo_actual}")
+        if simbolo_actual[0] == "NUMBER":
+            return NodoNumero(self.aceptar_token("NUMBER")[1])
+        elif simbolo_actual[0] == "IDENTIFIER":
+            return NodoIdentificador(self.aceptar_token("IDENTIFIER")[1])
+        raise SyntaxError(f"Error al analizar el componente: {simbolo_actual}")
 
-    def evaluar_condicion(self):
-        self.evaluar_expresion()
-        while self.obtener_simbolo() and self.obtener_simbolo()[0] in ["RELATIONAL", "LOGICAL"]:
-            self.aceptar_token(self.obtener_simbolo()[0])
-            self.evaluar_expresion()
-
-    def verificar_simbolo(self, operadores):
-        return self.obtener_simbolo() and self.obtener_simbolo()[1] in operadores
+# Función para exportar el AST a un archivo JSON
+def exportar_ast(ast, filename="ast.json"):
+    with open(filename, "w", encoding="utf-8") as f:
+        json.dump(ast.to_dict(), f, indent=4)
