@@ -3,15 +3,7 @@ import Analizador
 # Código fuente de prueba
 codigo_fuente = """
 int suma(int a, int b) {
-    int resultado = a + b * 2;
-
-    if (resultado > 10 && a != 0) {
-        resultado = resultado / 2;
-    } else if (b < 5 || a == 3) {
-        resultado = resultado + 1;
-    }
-
-    return resultado;
+    return a + b;
 }
 
 """
@@ -26,7 +18,16 @@ for tipo, valor in tokens:
 try:
     print("\nIniciando análisis sintáctico...")
     parser = Analizador.Parser(tokens)
-    parser.parsear()
+    ast = parser.parsear()
     print("Análisis sintáctico completado sin errores.")
+
+    # Imprimir el AST antes de exportarlo
+    print("\nÁrbol AST generado:")
+    print(ast.to_dict())
+
+    # Exportar AST a JSON
+    Analizador.exportar_ast(ast)
+    print("Árbol AST exportado a 'ast.json'.")
+
 except SyntaxError as e:
     print(e)
