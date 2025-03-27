@@ -1,4 +1,7 @@
-import Analizador
+from analisis_lexico import identificar_tokens
+from analisis_sintactico import Parser, exportar_ast
+from ensamblador import traducir_a_ensamblador_emu8086
+
 
 # Código fuente de prueba
 codigo_fuente = """
@@ -16,7 +19,7 @@ int suma(int a, int b) {
 """
 
 # Análisis léxico
-tokens = Analizador.identificar_tokens(codigo_fuente)
+tokens = identificar_tokens(codigo_fuente)
 print("Tokens encontrados:")
 for tipo, valor in tokens:
     print(f"{tipo}: {valor}")
@@ -26,7 +29,7 @@ print("\nTokens generados:", tokens)
 # Análisis sintáctico
 try:
     print("\nIniciando análisis sintáctico...")
-    parser = Analizador.Parser(tokens)
+    parser = Parser(tokens)
     ast = parser.parsear()
     print("Análisis sintáctico completado sin errores.")
 
@@ -35,21 +38,14 @@ try:
     print(ast.to_dict())
 
     # Exportar AST a JSON
-    Analizador.exportar_ast(ast)
+    exportar_ast(ast, "ast.json")
     print("Árbol AST exportado a 'ast.json'.")
 
-    # Generación de código ensamblador
-    print("\nGenerando código ensamblador...")
-    ensamblador = ""
-    for funcion in ast.funciones:
-        ensamblador_funcion = parser.generar_ensamblador(funcion)
-        if ensamblador_funcion:
-            ensamblador += ensamblador_funcion + "\n"
-        else:
-            print("No se generó código ensamblador para la función.")
-
-    print("\nCódigo ensamblador generado:")
-    print(ensamblador)
+    codigo_ensamblador = traducir_a_ensamblador_emu8086(codigo_fuente)
+    
+    # Mostrar el resultado
+    print("\nCódigo en ensamblador:")
+    print(codigo_ensamblador)
 
 except SyntaxError as e:
     print(f"\nError de sintaxis: {e}")
