@@ -5,16 +5,14 @@ from ensamblador import traducir_a_ensamblador_emu8086
 
 # Código fuente de prueba
 codigo_fuente = """
-int suma(int a, int b);
-
-void main() {
-    int s = suma(3,4);
-    print(s);
-}
-
 int suma(int a, int b) {
     int c = a + b;
     return c;
+}
+
+void main() {
+    int s = suma(3, 4);
+    print(s);
 }
 """
 
