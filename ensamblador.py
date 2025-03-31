@@ -164,3 +164,41 @@ def traducir_while_emu8086(linea):
         condicion = match.group(1)
         return f"    ; while {condicion} \n    ; (Aquí agregar lógica para el bucle)"
     return ""
+
+def ensamblador_a_lenguaje_maquina(ensamblador):
+    # Mapa básico de algunas instrucciones a sus opcodes
+    opcodes = {
+        'MOV': '8B',  # MOV tiene varias variantes, por ahora simplificamos
+        'ADD': '03',  # ADD
+        'CALL': 'E8',  # CALL
+        'RET': 'C3',   # RET
+        'PUSH': '50',  # PUSH
+        'POP': '58',   # POP
+        'MOV AH, 4CH': 'B4 4C',  # MOV AH, 4CH
+        'INT 21H': 'CD 21',  # INT 21H (Interrupción)
+        'MOV DL, AL': '8A D0',  # MOV DL, AL (instrucción para imprimir)
+    }
+    
+    # Lista de instrucciones que podrían estar en el código ensamblador
+    instrucciones = ensamblador.split('\n')
+    lenguaje_maquina = []
+
+    for instruccion in instrucciones:
+        instruccion = instruccion.strip()
+        
+        # Comprobamos si la instrucción está en el mapa de opcodes
+        for key, value in opcodes.items():
+            if instruccion.startswith(key):
+                lenguaje_maquina.append(value)
+                break
+    
+    return ' '.join(lenguaje_maquina)
+
+
+# Función principal que genera el lenguaje máquina
+def generar_codigo_lenguaje_maquina(codigo_ensamblador):
+    # Traducir el código ensamblador a lenguaje máquina
+    codigo_lenguaje_maquina = ensamblador_a_lenguaje_maquina(codigo_ensamblador)
+    
+    # Mostrar solo el código de lenguaje máquina
+    return codigo_lenguaje_maquina
