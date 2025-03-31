@@ -1,6 +1,7 @@
 from analisis_lexico import identificar_tokens
 from analisis_sintactico import Parser, exportar_ast
 from ensamblador import traducir_a_ensamblador_emu8086
+from ensamblador import generar_codigo_lenguaje_maquina
 
 
 # Código fuente de prueba
@@ -44,6 +45,10 @@ try:
     # Mostrar el resultado
     print("\nCódigo en ensamblador:")
     print(codigo_ensamblador)
+
+    lenguaje = generar_codigo_lenguaje_maquina(codigo_ensamblador)
+    print("\nCodigo lenguaje maquina (hexadecimal)")
+    print(lenguaje)
 
 except SyntaxError as e:
     print(f"\nError de sintaxis: {e}")
