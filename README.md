@@ -1,2 +1,2 @@
 # Analizador_Lexico_Sintactico
-Aca hay un codigo de un analizador lexico y sintactico 
+En este git lo que se encuentra es un Analizador lexico, sintactico y semantico para codigos en C, incluyendo traductor de ensamblador 
