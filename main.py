@@ -1,7 +1,8 @@
 from analisis_lexico import identificar_tokens
 from analisis_sintactico import Parser, exportar_ast
-from ensamblador import traducir_a_ensamblador_emu8086
+from ensamblador import GeneradorEnsamblador
 from ensamblador import generar_codigo_lenguaje_maquina
+from analisis_semantico import AnalizadorSemantico
 
 
 # Código fuente de prueba
@@ -12,7 +13,10 @@ int suma(int a, int b) {
 }
 
 void main() {
-    int s = suma(3, 4);
+    int s;
+    int a = 3;
+    int b = 4;
+    s = suma(a, b);
     print(s);
 }
 """
@@ -32,23 +36,28 @@ try:
     ast = parser.parsear()
     print("Análisis sintáctico completado sin errores.")
 
-    # Imprimir la estructura del AST
     print("\nÁrbol AST generado:")
     print(ast.to_dict())
 
-    # Exportar AST a JSON
     exportar_ast(ast, "ast.json")
     print("Árbol AST exportado a 'ast.json'.")
 
-    codigo_ensamblador = traducir_a_ensamblador_emu8086(codigo_fuente)
-    
-    # Mostrar el resultado
+    print("\nIniciando análisis semántico...")
+    analizador_semantico = AnalizadorSemantico()
+    analizador_semantico.analizar(codigo_fuente)
+    print("Análisis semántico completado sin errores.")
+
+    # Generación de código ensamblador
+    generador = GeneradorEnsamblador()
+    codigo_ensamblador = generador.generar_codigo(ast)
     print("\nCódigo en ensamblador:")
     print(codigo_ensamblador)
 
     lenguaje = generar_codigo_lenguaje_maquina(codigo_ensamblador)
-    print("\nCodigo lenguaje maquina (hexadecimal)")
+    print("\nCódigo lenguaje máquina (hexadecimal):")
     print(lenguaje)
 
 except SyntaxError as e:
     print(f"\nError de sintaxis: {e}")
+except Exception as e:
+    print(f"\nError semántico: {e}")
