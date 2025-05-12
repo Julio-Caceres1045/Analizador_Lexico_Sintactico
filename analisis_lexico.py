@@ -1,6 +1,5 @@
 import re
 
-# Definir patrones léxicos
 patrones_token = {
     "KEYWORD": r"\b(if|else|while|for|return|int|float|void|print)\b",
     "IDENTIFIER": r"\b[a-zA-Z_][a-zA-Z0-9_]*\b",
