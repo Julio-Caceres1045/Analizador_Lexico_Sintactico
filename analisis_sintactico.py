@@ -52,6 +52,7 @@ class NodoNumero(NodoAst):
     def __init__(self, valor):
         self.valor = valor
 
+
 class NodoDeclaracion(NodoAst):
     def __init__(self, tipo, nombre, expresion=None):
         self.tipo = tipo
@@ -89,18 +90,14 @@ class Parser:
         return NodoPrograma(funciones)
     
     def declaracion_variable(self):
-        # Se espera el tipo de la variable (KEYWORD)
         tipo = self.aceptar_token("KEYWORD")[1]
-        # Se espera el nombre de la variable (IDENTIFIER)
         nombre = self.aceptar_token("IDENTIFIER")[1]
         
-        # La asignación es opcional, pero en el ejemplo se usa '='
         expresion = None
         if self.obtener_simbolo() and self.obtener_simbolo()[0] == "EQUAL":
             self.aceptar_token("EQUAL")
             expresion = self.expresion()
         
-        # Se espera un delimitador ';'
         self.aceptar_token("DELIMITER")
         return NodoDeclaracion(tipo, nombre, expresion)
 
