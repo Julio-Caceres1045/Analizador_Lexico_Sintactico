@@ -81,7 +81,7 @@ class Parser:
         if simbolo_actual and simbolo_actual[0] == tipo_esperado:
             self.pos += 1
             return simbolo_actual
-        raise SyntaxError(f'Error Sintáctico, se esperaba {tipo_esperado}, pero se encontró {simbolo_actual}')
+        raise SyntaxError(f'Error Sintactico, se esperaba {tipo_esperado}, pero se encontro {simbolo_actual}')
 
     def parsear(self):
         funciones = []
@@ -105,61 +105,52 @@ class Parser:
     def parametros(self):
         parametros = []
         while self.obtener_simbolo() and self.obtener_simbolo()[0] == "KEYWORD":
-            # Primero, esperamos un tipo (KEYWORD)
             tipo = self.aceptar_token("KEYWORD")[1]
             
-            # Luego, esperamos un identificador para el nombre del parámetro
             if self.obtener_simbolo() and self.obtener_simbolo()[0] == "IDENTIFIER":
                 nombre = self.aceptar_token("IDENTIFIER")[1]
                 parametros.append(NodoParametro(tipo, nombre))
             else:
-                raise SyntaxError(f"Error de sintaxis, se esperaba IDENTIFIER, pero se encontró {self.obtener_simbolo()}")
+                raise SyntaxError(f"Error de sintaxis, se esperaba IDENTIFIER, pero se encontro {self.obtener_simbolo()}")
             
-            # Si hay más parámetros, deben estar separados por comas
             while self.obtener_simbolo() and self.obtener_simbolo()[1] == ",":
-                self.aceptar_token("DELIMITER")  # Consume la coma ','
+                self.aceptar_token("DELIMITER")  
                 
-                # Después de la coma, esperamos otro tipo (KEYWORD) y su identificador
                 if self.obtener_simbolo() and self.obtener_simbolo()[0] == "KEYWORD":
                     tipo = self.aceptar_token("KEYWORD")[1]
                     if self.obtener_simbolo() and self.obtener_simbolo()[0] == "IDENTIFIER":
                         nombre = self.aceptar_token("IDENTIFIER")[1]
                         parametros.append(NodoParametro(tipo, nombre))
                     else:
-                        raise SyntaxError(f"Error de sintaxis, se esperaba IDENTIFIER después de ',' pero se encontró {self.obtener_simbolo()}")
+                        raise SyntaxError(f"Error de sintaxis, se esperaba IDENTIFIER después de ',' pero se encontro {self.obtener_simbolo()}")
                 else:
-                    raise SyntaxError(f"Error de sintaxis, se esperaba KEYWORD después de ',' pero se encontró {self.obtener_simbolo()}")
+                    raise SyntaxError(f"Error de sintaxis, se esperaba KEYWORD despues de ',' pero se encontro {self.obtener_simbolo()}")
         
         return parametros
 
         
     def funcion(self):
-        # Se espera el tipo de retorno de la función, como 'int', 'void', etc.
         tipo = self.aceptar_token("KEYWORD")[1]
         
-        # Se espera el nombre de la función (un IDENTIFIER)
         nombre = self.aceptar_token("IDENTIFIER")[1]
         
-        self.aceptar_token("DELIMITER")  # Consume el '('
+        self.aceptar_token("DELIMITER")  
 
-        # Procesa los parámetros de la función
         parametros = self.parametros()
         
-        self.aceptar_token("DELIMITER")  # Consume el ')'
+        self.aceptar_token("DELIMITER")  
         
-        siguiente = self.obtener_simbolo()  # Verifica si el siguiente es ';' o '{'
+        siguiente = self.obtener_simbolo() 
         
-        # **Aquí está el cambio: si encuentra ';', es una declaración de función**
         if siguiente and siguiente[1] == ";":
-            self.aceptar_token("DELIMITER")  # Consume el ';'
-            return NodoFuncion(tipo, nombre, parametros, [])  # Función sin cuerpo
+            self.aceptar_token("DELIMITER")  
+            return NodoFuncion(tipo, nombre, parametros, [])  
 
-        self.aceptar_token("DELIMITER")  # Consume el '{'
+        self.aceptar_token("DELIMITER") 
         
-        # Procesa el cuerpo de la función
         cuerpo = self.cuerpo()
         
-        self.aceptar_token("DELIMITER")  # Consume el '}'
+        self.aceptar_token("DELIMITER") 
         
         return NodoFuncion(tipo, nombre, parametros, cuerpo)
 
@@ -172,9 +163,9 @@ class Parser:
                     cuerpo.append(self.retorno())
                 elif simbolo_actual[1] in ["int", "float"]:
                     cuerpo.append(self.declaracion_variable())
-                elif simbolo_actual[1] == "print":  # Nuevo caso para print
+                elif simbolo_actual[1] == "print":  
                     cuerpo.append(self.imprimir())
-                elif simbolo_actual[1] == "if":  # Nuevo caso para if
+                elif simbolo_actual[1] == "if": 
                     cuerpo.append(self.if_else())
                 else:
                     raise SyntaxError(f"Error inesperado en el cuerpo: {simbolo_actual}")
@@ -214,43 +205,38 @@ class Parser:
         elif simbolo_actual[0] == "IDENTIFIER":
             nombre = self.aceptar_token("IDENTIFIER")[1]
 
-            # Si el siguiente símbolo es '(', es una llamada a función
             if self.obtener_simbolo() and self.obtener_simbolo()[1] == "(":
-                self.aceptar_token("DELIMITER")  # Consume '('
-                argumentos = self.argumentos()   # Procesar los argumentos
-                self.aceptar_token("DELIMITER")  # Consume ')'
+                self.aceptar_token("DELIMITER")  
+                argumentos = self.argumentos()   
+                self.aceptar_token("DELIMITER") 
                 return NodoLlamadaFuncion(nombre, argumentos)
             
-            return NodoIdentificador(nombre)  # Si no es función, es solo un identificador
+            return NodoIdentificador(nombre) 
 
         raise SyntaxError(f"Error al analizar el término: {simbolo_actual}")
     
     def argumentos(self):
         argumentos = []
         
-        # Si el siguiente token es ')', la función no tiene argumentos
         if self.obtener_simbolo() and self.obtener_simbolo()[1] == ")":
             return argumentos
 
-        # Procesar el primer argumento
         argumentos.append(self.expresion())
 
-        # Procesar argumentos adicionales separados por ','
         while self.obtener_simbolo() and self.obtener_simbolo()[1] == ",":
-            self.aceptar_token("DELIMITER")  # Consume ','
+            self.aceptar_token("DELIMITER")  
             argumentos.append(self.expresion())
 
         return argumentos
     
     def imprimir(self):
-        self.aceptar_token("KEYWORD")  # Consume 'print'
-        self.aceptar_token("DELIMITER")  # Consume '('
-        expresion = self.expresion()  # Analiza la expresión dentro de print
-        self.aceptar_token("DELIMITER")  # Consume ')'
-        self.aceptar_token("DELIMITER")  # Consume ';'
+        self.aceptar_token("KEYWORD")  
+        self.aceptar_token("DELIMITER")  
+        expresion = self.expresion() 
+        self.aceptar_token("DELIMITER") 
+        self.aceptar_token("DELIMITER") 
         return NodoPrint(expresion)
 
-# Función para exportar el AST a un archivo JSON
 def exportar_ast(ast, filename="ast.json"):
     with open(filename, "w", encoding="utf-8") as f:
         json.dump(ast.to_dict(), f, indent=4)
